@@ -165,7 +165,7 @@
   html += '<section class="fcard" id="projSection"><div class="hfeed" id="hfeed">' + projPanels + '</div>' +
     '<button class="parrow left" id="pPrev" aria-label="Sebelumnya">←</button>' +
     '<button class="parrow right" id="pNext" aria-label="Berikutnya">→</button>' +
-    '<div class="psub"><span id="pIdx">01</span> / 07 <span class="swipe-x">geser →</span></div></section>';
+    '<div class="xhint" id="xhint"><span class="arr">←</span> geser <span class="arr">→</span></div></section>';
 
   // 12 — KONTAK
   html += '<section class="fcard"><div class="fgrad g1"></div><div class="fshade"></div><div class="grain"></div>' +
@@ -186,15 +186,17 @@
 
   // ---- horizontal projects ----
   var hfeed = document.getElementById('hfeed');
-  var pIdxEl = document.getElementById('pIdx');
+  var xhint = document.getElementById('xhint');
   var pCount = PROJECTS.length;
+  var xHintGone = false;
   function pIdx(){ return Math.min(pCount - 1, Math.round(hfeed.scrollLeft / hfeed.clientWidth)); }
   function goP(i){
     i = Math.max(0, Math.min(pCount - 1, i));
     hfeed.scrollTo({left: i * hfeed.clientWidth, behavior: 'smooth'});
   }
   hfeed.addEventListener('scroll', function(){
-    pIdxEl.textContent = pad(pIdx() + 1);
+    if (!xHintGone && hfeed.scrollLeft > 40) { xhint.classList.add('gone'); xHintGone = true; }
+    updateCounter();
   }, {passive: true});
   document.getElementById('pPrev').addEventListener('click', function(){ goP(pIdx() - 1); });
   document.getElementById('pNext').addEventListener('click', function(){ goP(pIdx() + 1); });
@@ -212,6 +214,13 @@
     return '<i data-go="' + i + '" class="' + (i === 0 ? 'on' : '') + '"></i>';
   }).join('');
   function pad(n){ return (n < 10 ? '0' : '') + n; }
+  function curSecIdx(){ return Math.min(total - 1, Math.round(feed.scrollTop / window.innerHeight)); }
+  function updateCounter(){
+    var idx = curSecIdx();
+    var txt = pad(idx + 1) + ' / ' + pad(total) + ' • ' + secNames[idx];
+    if (idx === projSecIdx) txt += ' ' + pad(pIdx() + 1) + '/' + pad(pCount);
+    counter.textContent = txt;
+  }
   dotsBox.querySelectorAll('i').forEach(function (d) {
     d.addEventListener('click', function () {
       cards[+d.dataset.go].scrollIntoView({behavior: 'smooth'});
@@ -219,13 +228,13 @@
   });
   var hint = document.getElementById('swipeHint'), hintGone = false;
   feed.addEventListener('scroll', function () {
-    var idx = Math.min(total - 1, Math.round(feed.scrollTop / window.innerHeight));
+    var idx = curSecIdx();
     dotsBox.querySelectorAll('i').forEach(function (d, k) { d.classList.toggle('on', k === idx); });
-    counter.textContent = pad(idx + 1) + ' / ' + pad(total) + ' • ' + secNames[idx];
+    updateCounter();
     if (!hintGone && feed.scrollTop > 60) { hint.classList.add('gone'); hintGone = true; }
   }, {passive: true});
   document.addEventListener('keydown', function (e) {
-    var idx = Math.min(total - 1, Math.round(feed.scrollTop / window.innerHeight));
+    var idx = curSecIdx();
     if (e.key === 'ArrowDown' || e.key === ' ') {
       e.preventDefault();
       if (idx < total - 1) cards[idx + 1].scrollIntoView({behavior: 'smooth'});
