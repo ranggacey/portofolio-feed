@@ -149,19 +149,23 @@
       '<small>' + place + '</small><p>' + desc + '</p></div>';
   }
 
-  // 5–11 — PROJECTS
-  PROJECTS.forEach(function (p) {
+  // 5 — PROJECTS (horizontal swipe section)
+  var projPanels = PROJECTS.map(function (p) {
     var btns = '';
     if (p.gh) btns += '<a class="btn-line" href="' + p.gh + '" target="_blank" rel="noopener">GitHub</a>';
     if (p.live) btns += '<a class="btn-play" href="' + p.live + '" target="_blank" rel="noopener">Live Demo →</a>';
-    html += '<section class="fcard"><div class="fgrad ' + p.g + '"></div><div class="fshade"></div><div class="grain"></div>' +
+    return '<div class="ppanel"><div class="fgrad ' + p.g + '"></div><div class="fshade"></div><div class="grain"></div>' +
       '<div class="art"><span class="halo"></span>' + ICONS[p.icon] + '</div>' +
       '<div class="pnum">' + p.num + ' / 07</div>' +
       '<div class="finfo"><p class="kicker">PROYEK' + (p.sub ? ' • ' + p.sub.toUpperCase() : '') + '</p>' +
       '<h1>' + p.t + '</h1><div class="tags" style="margin-bottom:12px">' +
       p.tech.map(function (t) { return '<span>' + t + '</span>'; }).join('') + '</div>' +
-      '<p class="syn">' + p.d + '</p><div class="fact">' + btns + '</div></div></section>';
-  });
+      '<p class="syn">' + p.d + '</p><div class="fact">' + btns + '</div></div></div>';
+  }).join('');
+  html += '<section class="fcard" id="projSection"><div class="hfeed" id="hfeed">' + projPanels + '</div>' +
+    '<button class="parrow left" id="pPrev" aria-label="Sebelumnya">←</button>' +
+    '<button class="parrow right" id="pNext" aria-label="Berikutnya">→</button>' +
+    '<div class="psub"><span id="pIdx">01</span> / 07 <span class="swipe-x">geser →</span></div></section>';
 
   // 12 — KONTAK
   html += '<section class="fcard"><div class="fgrad g1"></div><div class="fshade"></div><div class="grain"></div>' +
@@ -180,11 +184,30 @@
 
   feed.innerHTML = html;
 
+  // ---- horizontal projects ----
+  var hfeed = document.getElementById('hfeed');
+  var pIdxEl = document.getElementById('pIdx');
+  var pCount = PROJECTS.length;
+  function pIdx(){ return Math.min(pCount - 1, Math.round(hfeed.scrollLeft / hfeed.clientWidth)); }
+  function goP(i){
+    i = Math.max(0, Math.min(pCount - 1, i));
+    hfeed.scrollTo({left: i * hfeed.clientWidth, behavior: 'smooth'});
+  }
+  hfeed.addEventListener('scroll', function(){
+    pIdxEl.textContent = pad(pIdx() + 1);
+  }, {passive: true});
+  document.getElementById('pPrev').addEventListener('click', function(){ goP(pIdx() - 1); });
+  document.getElementById('pNext').addEventListener('click', function(){ goP(pIdx() + 1); });
+
   // ---- feed logic ----
   var cards = Array.prototype.slice.call(feed.querySelectorAll('.fcard'));
+  var projSection = document.getElementById('projSection');
+  var projSecIdx = cards.indexOf(projSection);
   var dotsBox = document.getElementById('dots');
   var counter = document.getElementById('counter');
   var total = cards.length;
+  var secNames = ['Profil','Tentang','Keahlian','Perjalanan','Proyek','Kontak'];
+  counter.textContent = '01 / ' + pad(total) + ' • Profil';
   dotsBox.innerHTML = cards.map(function (_, i) {
     return '<i data-go="' + i + '" class="' + (i === 0 ? 'on' : '') + '"></i>';
   }).join('');
@@ -198,7 +221,7 @@
   feed.addEventListener('scroll', function () {
     var idx = Math.min(total - 1, Math.round(feed.scrollTop / window.innerHeight));
     dotsBox.querySelectorAll('i').forEach(function (d, k) { d.classList.toggle('on', k === idx); });
-    counter.textContent = pad(idx + 1) + ' / ' + pad(total);
+    counter.textContent = pad(idx + 1) + ' / ' + pad(total) + ' • ' + secNames[idx];
     if (!hintGone && feed.scrollTop > 60) { hint.classList.add('gone'); hintGone = true; }
   }, {passive: true});
   document.addEventListener('keydown', function (e) {
@@ -209,6 +232,10 @@
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       if (idx > 0) cards[idx - 1].scrollIntoView({behavior: 'smooth'});
+    } else if (e.key === 'ArrowRight' && idx === projSecIdx) {
+      e.preventDefault(); goP(pIdx() + 1);
+    } else if (e.key === 'ArrowLeft' && idx === projSecIdx) {
+      e.preventDefault(); goP(pIdx() - 1);
     }
   });
 })();
